@@ -1,0 +1,172 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-app);
+  --font-mono: var(--font-app);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-brass: var(--brass);
+  --color-brass-foreground: var(--brass-foreground);
+  --color-cream: var(--cream);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.75rem;
+  /* باليتة الواحة: كريمي دافئ + أخضر غابة عميق + نحاسي */
+  --background: #faf7f1;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+  --primary: #1e3a2b;
+  --primary-foreground: #f5f1e8;
+  --secondary: #ede7db;
+  --secondary-foreground: #1e3a2b;
+  --muted: #f0ece3;
+  --muted-foreground: #78716c;
+  --accent: #ede7db;
+  --accent-foreground: #1e3a2b;
+  --brass: #b08a3e;
+  --brass-foreground: #ffffff;
+  --cream: #faf7f1;
+  --destructive: #b3362b;
+  --border: #e6dfd2;
+  --input: #e0d9ca;
+  --ring: #1e3a2b;
+  --chart-1: #1e3a2b;
+  --chart-2: #b08a3e;
+  --chart-3: #6b8f71;
+  --chart-4: #d9c9a3;
+  --chart-5: #7c6a4e;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1c1917;
+  --sidebar-primary: #1e3a2b;
+  --sidebar-primary-foreground: #f5f1e8;
+  --sidebar-accent: #ede7db;
+  --sidebar-accent-foreground: #1e3a2b;
+  --sidebar-border: #e6dfd2;
+  --sidebar-ring: #1e3a2b;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    letter-spacing: -0.01em;
+    /* منع أي تمرير أفقي بالغلط على الموبايل (clip مش hidden عشان الـ sticky يشتغل) */
+    overflow-x: clip;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* الموبايل: منع iOS من عمل زووم تلقائي عند الكتابة في الحقول
+   (iOS بيعمل zoom لو حجم خط الحقل أقل من 16px) */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* سكرول بار أنيق */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f0ece3;
+}
+::-webkit-scrollbar-thumb {
+  background: #cdc4b0;
+  border-radius: 8px;
+  border: 2px solid #f0ece3;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b0a68e;
+}
+
+/* نمط النقش الخفيف للخلفيات الداكنة */
+.pattern-dots {
+  background-image: radial-gradient(rgba(245, 241, 232, 0.12) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* إخفاء السكرول بار مع بقاء السحب يعمل (لشرائط التصنيفات على الموبايل) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ظل المنتج عند التحويم */
+.product-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px -12px rgba(30, 58, 43, 0.18);
+  border-color: #d5cbb6;
+}
+
+/* شريط متحرك للإعلانات */
+@keyframes marquee-rtl {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.animate-marquee {
+  animation: marquee-rtl 22s linear infinite;
+}
+
+/* أرقام العملة بشكل موحد */
+.price-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}

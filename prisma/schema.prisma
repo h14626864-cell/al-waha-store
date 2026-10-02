@@ -1,0 +1,370 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  image       String?
+  sortOrder   Int       @default(0)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+}
+
+model Product {
+  id           String      @id @default(cuid())
+  name         String
+  slug         String      @unique
+  description  String
+  price        Float
+  comparePrice Float?
+  image        String
+  categoryId   String
+  category     Category    @relation(fields: [categoryId], references: [id])
+  stock        Int         @default(0)
+  rating       Float       @default(4.5)
+  reviewsCount Int         @default(0)
+  featured     Boolean     @default(false)
+  isNew        Boolean     @default(false)
+  brand        String?
+  soldCount    Int         @default(0)
+  sizes        String[]    @default([])
+  colors       Json?       // [{ "name": "أسود", "hex": "#000000" }]
+  salePrice    Float?      // سعر عرض الفلاش
+  saleEndsAt   DateTime?   // نهاية العرض — بعدها السعر يرجع تلقائيًا
+  createdAt    DateTime    @default(now())
+  orderItems   OrderItem[]
+  reviews      Review[]
+  images       ProductImage[]
+  variants     ProductVariant[]
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  orderNumber   String      @unique
+  customerId    String?
+  customer      Customer?   @relation(fields: [customerId], references: [id])
+  customerName  String
+  phone         String
+  email         String?
+  city          String
+  address       String
+  notes         String?
+  paymentMethod String      @default("COD")
+  status        String      @default("PENDING")
+  subtotal      Float
+  shipping      Float       @default(0)
+  discount      Float       @default(0)
+  total         Float
+  couponCode    String?
+  // الشحن والتكامل مع شركات الشحن
+  shippingProvider String?      // BOSTA | MANUAL
+  shipmentId       String?      // رقم الشحنة عند شركة الشحن
+  trackingNumber   String?      // رقم تتبع الشحنة
+  shipmentStatus   String?      // حالة الشحنة الحالية من شركة الشحن
+  shipmentUpdatedAt DateTime?
+  createdAt     DateTime    @default(now())
+  items         OrderItem[]
+  payments      Payment[]
+  notifications NotificationLog[]
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
+  productName String
+  image       String?
+  price       Float
+  quantity    Int
+  size        String?
+  color       String?
+}
+
+// ============ السلات المتروكة ============
+model AbandonedCart {
+  id               String    @id @default(cuid())
+  token            String    @unique @default(cuid())
+  customerName     String?
+  phone            String?
+  email            String?
+  city             String?
+  items            Json      // لقطة عناصر السلة [{ productId, name, slug, image, price, quantity, size, color }]
+  subtotal         Float     @default(0)
+  status           String    @default("OPEN") // OPEN | RECOVERED | EXPIRED
+  remindersSent    Int       @default(0)
+  lastReminderAt   DateTime?
+  lastChannel      String?   // EMAIL | WHATSAPP
+  recoveredOrderId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status, updatedAt])
+}
+
+// ============ مشتركو النشرة البريدية ============
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+// ============ سجل الإيميلات المرسلة ============
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  template  String   // ORDER_CONFIRM | ADMIN_NEW_ORDER | ABANDONED_CART | TEST
+  status    String   @default("SENT") // SENT | FAILED | SKIPPED
+  error     String?
+  meta      String?  // JSON: orderNumber / cartToken...
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Coupon {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  discountPercent Int
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+}
+
+// ============ العملاء ============
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String
+  createdAt DateTime @default(now())
+  orders    Order[]
+  tickets   Ticket[]
+}
+
+// ============ البانرات والإعلانات ============
+model Banner {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String?
+  image     String?
+  link      String?
+  placement String   @default("HERO") // HERO | STRIP | PROMO
+  ctaText   String?
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// ============ تذاكر الدعم ============
+model Ticket {
+  id           String          @id @default(cuid())
+  ticketNumber String          @unique
+  customerId   String?
+  customer     Customer?       @relation(fields: [customerId], references: [id])
+  name         String
+  email        String
+  subject      String
+  orderNumber  String?
+  status       String          @default("OPEN") // OPEN | REPLIED | CLOSED
+  messages     TicketMessage[]
+  createdAt    DateTime        @default(now())
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender    String // CUSTOMER | ADMIN
+  body      String
+  createdAt DateTime @default(now())
+}
+
+// ============ المدفوعات ============
+model Payment {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider    String // PAYMOB | COD
+  amount      Float
+  status      String   @default("PENDING") // PENDING | PAID | FAILED
+  reference   String?
+  cardLast4   String?
+  paymobOrderId      String? // رقم الطلب في بايموب
+  paymobTxnId        String? // رقم معاملة بايموب
+  paymobSuccessData  String? // JSON بيانات المعاملة الناجحة
+  createdAt   DateTime @default(now())
+}
+
+// ============ الإعدادات ============
+model Setting {
+  key   String @id
+  value String
+}
+
+// ============ سجل إشعارات العملاء (واتساب) ============
+model NotificationLog {
+  id          String    @id @default(cuid())
+  orderId     String?
+  order       Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  orderNumber String
+  channel     String    @default("WHATSAPP") // WHATSAPP
+  to          String // رقم العميل بصيغة واتساب الدولية
+  event       String // SHIPMENT_UPDATE | ORDER_STATUS | SHIPMENT_CREATED | TEST
+  message     String
+  status      String    @default("SENT") // SENT | FAILED | SKIPPED
+  error       String?
+  createdAt   DateTime  @default(now())
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  rating    Int
+  comment   String
+  approved  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([productId, createdAt])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId, sortOrder])
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  type      String
+  price     Float?
+  stock     Int      @default(0)
+  sku       String?
+  createdAt DateTime @default(now())
+
+  @@index([productId, type])
+}
+
+// ============================================================
+// جداول مشروع خارجي (رسمة) بيشارك نفس قاعدة بيانات Neon
+// ⚠️ ممنوع حذفها من السكيما — لو اتحذفت prisma db push هيسقطها من الداتابيز
+// ============================================================
+model Appeal {
+  id        String   @id
+  artistId  String
+  message   String
+  status    String   @default("PENDING")
+  adminNote String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [artistId], references: [id], onDelete: Cascade)
+}
+
+model Artwork {
+  id              String            @id
+  artistId        String
+  title           String
+  price           Float             @default(0)
+  description     String            @default("")
+  image           String?
+  status          String            @default("AVAILABLE")
+  featured        Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  User            User              @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  Inquiry         Inquiry[]
+  PurchaseRequest PurchaseRequest[]
+}
+
+model Inquiry {
+  id        String   @id
+  artistId  String
+  artworkId String?
+  name      String
+  phone     String
+  message   String   @default("")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  Artwork   Artwork? @relation(fields: [artworkId], references: [id])
+}
+
+model PurchaseRequest {
+  id         String   @id
+  artworkId  String
+  artistId   String
+  buyerName  String
+  buyerPhone String
+  buyerCity  String   @default("")
+  address    String   @default("")
+  note       String   @default("")
+  status     String   @default("NEW")
+  createdAt  DateTime @default(now())
+  User       User     @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  Artwork    Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+}
+
+model SiteSetting {
+  id           String   @id @default("main")
+  siteName     String   @default("رسمة")
+  tagline      String   @default("منصة خريجي كليات الفنون الجميلة")
+  heroTitle    String   @default("فنّك يستاهل يتشاف")
+  heroSubtitle String   @default("اعمل بورتفوليو باسمك، اعرض لوحاتك، واستقبل طلبات شراء حقيقية — كل ده بلينك خاص بيك.")
+  announcement String   @default("")
+  updatedAt    DateTime
+}
+
+model User {
+  id              String            @id
+  name            String
+  slug            String            @unique
+  phone           String            @unique
+  password        String
+  isGraduate      Boolean           @default(true)
+  college         String            @default("")
+  bio             String            @default("")
+  photo           String?
+  whatsappEnabled Boolean           @default(false)
+  whatsappNumber  String            @default("")
+  role            String            @default("ARTIST")
+  status          String            @default("ACTIVE")
+  views           Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  journey         String            @default("")
+  passion         String            @default("")
+  suspendReason   String            @default("")
+  Appeal          Appeal[]
+  Artwork         Artwork[]
+  Inquiry         Inquiry[]
+  PurchaseRequest PurchaseRequest[]
+}
